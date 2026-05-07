@@ -2,7 +2,7 @@
 
 ID=$(id -u)
 if [ $ID -ne 0 ]; then
-  echo "You should run this script as root  user or with sudo privileges"
+  echo -e "\e\32m You should run this script as root  user or with sudo privileges \e\0m"
   exit 1
 fi
 
