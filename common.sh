@@ -1,0 +1,100 @@
+#!bin/bash
+echo "configuration management for $COMPONENT in progress"
+ID=$(id -u)
+APPUSER="roboshop"
+LOG="/tmp/${COMPONENT}.log" 
+if [ $ID -ne 0 ]; then 
+    echo -e "\e[35m Script has to executed as a root user or with sudo \e[0m"
+    echo -e "Example Usage: \n\t \e[33m sudo bash $0  OR # bash $0 \e[0m"
+    exit 1
+fi
+
+stat() {
+    if [ $1 -eq 0 ]; then 
+        echo -e "\e[32m Success \e[0m"
+    else
+        echo -e "\e[33m Failure \e[0m "
+        exit 2
+    fi 
+}
+
+create_user(){
+
+}
+
+download_and_extract(){
+echo -n "performing cleanup of $COMPONENT :"
+rm -rf /app/ || true
+stat $?         
+
+echo -n "creating APP directory :"
+mkdir /app
+stat $? 
+echo -n "downloading the $COMPONENT app :"
+curl -o /tmp/${COMPONENT}.zip https://stan-robotshop.s3.amazonaws.com/${COMPONENT}-v3.zip 
+stat $? 
+
+echo -n "extracting the $COMPONENT app"
+unzip -o /tmp/${COMPONENT}.zip -d /app/ &>> $LOG
+stat $?
+
+}
+
+config_svc(){
+    echo -n "configuring systemd for $COMPONENT :"
+    cp ${COMPONENT}.service /etc/systemd/system/${COMPONENT}.service
+    stat $?
+
+    echo -n "starting $COMPONENT service :"
+     echo -n "Starting $COMPONENT service :"
+    systemctl enable $COMPONENT &>> $LOG
+    systemctl restart $COMPONENT &>> $LOG
+    stat $? 
+}
+
+install_monghShell() {
+    echo -n "Configuring Mongo shell repo :"
+    cp mongo.repo /etc/yum.repos.d/mongo.repo
+
+    echo -n "Installing mongodb shell :"
+    dnf install mongodb-mongosh -y &>> $LOG
+    stat $?
+}
+
+nodejs() {
+    echo -n "Disabling the default nodejs version :"
+    dnf module disable nodejs -y &>> $LOG
+    stat $? 
+
+    echo -n "Enabling the nodejs version 20 :"
+    dnf module enable nodejs:20 -y &>> $LOG
+    stat $? 
+
+    echo -n "Installing Nodejs :"
+    dnf install nodejs -y &>> $LOG
+    stat $?
+
+    create_user
+
+    install_monghShell
+
+    download_and_extract
+
+    config_svc
+
+    echo -n "Generating $COMPONENT Artifacts :"
+    cd /app
+    npm install &>> $LOG
+    stat  $?
+    
+    if [ "$COMPONENT" == "catalogue" ]; then
+        echo -n "Injecting the schema :"
+        mongosh --host mongodb.roboshope.shop </app/db/master-data.js &>> $LOG
+        stat $? 
+    fi 
+
+    echo -e "\n \t ___ Configuration Management for $COMPONENT in completed! ___"
+
+}
+
+
