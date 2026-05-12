@@ -1,8 +1,11 @@
-#!bin/bash
-echo "configuration management for $COMPONENT in progress"
+#!/bin/bash
+
+echo "Configuration Management for $COMPONENT in progress"
+
 ID=$(id -u)
 APPUSER="roboshop"
-LOG="/tmp/${COMPONENT}.log" 
+LOG="/tmp/${COMPONENT}.log"
+
 if [ $ID -ne 0 ]; then 
     echo -e "\e[35m Script has to executed as a root user or with sudo \e[0m"
     echo -e "Example Usage: \n\t \e[33m sudo bash $0  OR # bash $0 \e[0m"
@@ -18,37 +21,46 @@ stat() {
     fi 
 }
 
-create_user(){
 
+create_user() {
+    id $APPUSER  &>> $LOG
+    if [ $? -ne 0 ]; then
+        echo -n "Creating roboshop user account :"
+        useradd $APPUSER 
+        stat $?
+    else
+        echo -n "SKIPPING"
+    fi 
+    stat $? 
 }
 
-download_and_extract(){
-echo -n "performing cleanup of $COMPONENT :"
-rm -rf /app/ || true
-stat $?         
 
-echo -n "creating APP directory :"
-mkdir /app
-stat $? 
-echo -n "downloading the $COMPONENT app :"
-curl -o /tmp/${COMPONENT}.zip https://stan-robotshop.s3.amazonaws.com/${COMPONENT}-v3.zip 
-stat $? 
+download_and_extract() {
+    echo -n "Performing cleanup of $COMPONENT :"
+    rm -rf /app/ || true 
+    stat $?
 
-echo -n "extracting the $COMPONENT app"
-unzip -o /tmp/${COMPONENT}.zip -d /app/ &>> $LOG
-stat $?
+    echo -n "Creating APP directory :"
+    mkdir /app
+    stat $? 
 
+    echo -n "Downloading the $COMPONENT app :"
+    curl -o /tmp/${COMPONENT}.zip https://stan-robotshop.s3.amazonaws.com/${COMPONENT}-v3.zip  &>> $LOG
+    stat $?
+
+    echo -n "Extracting the $COMPONENT app"
+    unzip -o /tmp/${COMPONENT}.zip -d /app/  &>> $LOG
+    stat $?
 }
 
-config_svc(){
-    echo -n "configuring systemd for $COMPONENT :"
+config_svc() {
+    echo -n "Configuring systemd for $COMPONENT :"
     cp ${COMPONENT}.service /etc/systemd/system/${COMPONENT}.service
     stat $?
 
-    echo -n "starting $COMPONENT service :"
-     echo -n "Starting $COMPONENT service :"
+    echo -n "Starting $COMPONENT service :"
     systemctl enable $COMPONENT &>> $LOG
-    systemctl restart $COMPONENT &>> $LOG
+    systemctl start $COMPONENT &>> $LOG
     stat $? 
 }
 
@@ -89,12 +101,10 @@ nodejs() {
     
     if [ "$COMPONENT" == "catalogue" ]; then
         echo -n "Injecting the schema :"
-        mongosh --host mongodb.roboshope.shop </app/db/master-data.js &>> $LOG
+        mongosh --host mongodb.robotshop.fun </app/db/master-data.js &>> $LOG
         stat $? 
     fi 
 
     echo -e "\n \t ___ Configuration Management for $COMPONENT in completed! ___"
 
 }
-
-
