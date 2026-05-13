@@ -73,6 +73,12 @@ install_monghShell() {
     stat $?
 }
 
+install_mysql() {
+    echo -n "Installing mysql :"
+    dnf install mysql -y &>> $LOG
+    stat $?
+}
+
 nodejs() {
     echo -n "Disabling the default nodejs version :"
     dnf module disable nodejs -y &>> $LOG
@@ -107,4 +113,59 @@ nodejs() {
 
     echo -e "\n \t ___ Configuration Management for $COMPONENT in completed! ___"
 
+}
+
+maven() {
+    echo -n "Installing Maven :"
+    dnf install maven -y &>> $LOG
+    stat $?
+
+    create_user
+
+    download_and_extract
+    
+    echo -n "Generating $COMPONENT Artifacts :"
+    cd /app
+    mvn clean package  &>> $LOG
+    mv target/${COMPONENT}-1.0.jar ${COMPONENT}.jar 
+    cd -
+    stat  $?
+    
+    install_mysql
+
+    config_svc
+
+    if [ "$COMPONENT" == "shipping" ]; then
+        echo -n "Injecting the schema :"
+        mysql -h mysql.robotshop.fun -uroot -pRoboShop@1 < /app/db/schema.sql &>> $LOG
+        stat $?
+        echo -n "Injecting the appUser info :"
+        mysql -h mysql.robotshop.fun -uroot -pRoboShop@1 < /app/db/app-user.sql &>> $LOG
+        stat $?
+        echo -n "Injecting the master-data info :"
+        mysql -h mysql.robotshop.fun -uroot -pRoboShop@1 < /app/db/master-data.sql &>> $LOG
+        stat $?
+    fi 
+
+    echo -e "\n \t ___ Configuration Management for $COMPONENT in completed! ___"
+}
+
+python() {
+    echo -n "Installing Python3 :"
+    dnf install python3 gcc python3-devel -y &>> $LOG
+    stat $?
+
+    create_user
+
+    download_and_extract
+    
+    echo -n "Generating $COMPONENT Artifacts :"
+    cd /app
+    pip3 install -r requirements.txt &>> $LOG
+    cd -
+    stat  $?
+
+    config_svc
+
+    echo -e "\n \t ___ Configuration Management for $COMPONENT in completed! ___"
 }
