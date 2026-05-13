@@ -137,13 +137,13 @@ maven() {
 
     if [ "$COMPONENT" == "shipping" ]; then
         echo -n "Injecting the schema :"
-        mysql -h mysql.robotshop.fun -uroot -pRoboShop@1 < /app/db/schema.sql &>> $LOG
+        mysql -h mysql.roboshope.shop -uroot -pRoboShop@1 < /app/db/schema.sql &>> $LOG
         stat $?
         echo -n "Injecting the appUser info :"
-        mysql -h mysql.robotshop.fun -uroot -pRoboShop@1 < /app/db/app-user.sql &>> $LOG
+        mysql -h mysql.roboshope.shop -uroot -pRoboShop@1 < /app/db/app-user.sql &>> $LOG
         stat $?
         echo -n "Injecting the master-data info :"
-        mysql -h mysql.robotshop.fun -uroot -pRoboShop@1 < /app/db/master-data.sql &>> $LOG
+        mysql -h mysql.roboshope.shop -uroot -pRoboShop@1 < /app/db/master-data.sql &>> $LOG
         stat $?
     fi 
 
